@@ -1,0 +1,69 @@
+# Visual Studio / IDE
+.vs/
+.idea/
+.vscode/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+.vsconfig
+*.user
+
+# Build outputs
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# Plugin generated files
+Plugins/**/Binaries/
+Plugins/**/Intermediate/
+Plugins/**/Saved/
+
+# Keep useful Build files
+!Build/
+!Build/**/*.ico
+!Build/**/*.png
+!Build/**/*.ini
+!Build/**/*.cs
+
+# Unreal generated / temporary
+*.log
+*.tmp
+*.bak
+*.swp
+*_BuiltData.uasset
+
+# Compiled object / binary files
+*.obj
+*.o
+*.lo
+*.slo
+*.pch
+*.gch
+*.dll
+*.dylib
+*.so
+*.lib
+*.a
+*.exe
+*.out
+*.app
+*.ipa
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Source art backup / raw exports
+SourceArt/**/*.png
+SourceArt/**/*.tga
