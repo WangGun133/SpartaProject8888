@@ -5,6 +5,10 @@
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "Components/CapsuleComponent.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "InputCoreTypes.h"
 
 AMyCharacter::AMyCharacter()
 {
@@ -14,11 +18,30 @@ AMyCharacter::AMyCharacter()
 
     GetCharacterMovement()->bOrientRotationToMovement = false;
     GetCharacterMovement()->bUseControllerDesiredRotation = false;
+
+    CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+    CameraBoom->SetupAttachment(RootComponent);
+    CameraBoom->TargetArmLength = NormalCameraDistance;
+    CameraBoom->SetRelativeRotation(SideViewCameraRotation);
+    CameraBoom->bUsePawnControlRotation = false;
+
+    FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+    FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+    FollowCamera->bUsePawnControlRotation = false;
 }
 
 void AMyCharacter::BeginPlay()
 {
     Super::BeginPlay();
+
+    CurrentHealth = MaxHealth;
+    UE_LOG(LogTemp, Warning, TEXT("Character %s starting health: %.1f / %.1f"), *GetName(), CurrentHealth, MaxHealth);
+
+    if (CameraBoom)
+    {
+        CameraBoom->TargetArmLength = NormalCameraDistance;
+        ApplySideViewCameraRotation();
+    }
 
     BaseActorYaw = GetActorRotation().Yaw;
 
@@ -51,6 +74,8 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
         EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
         EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Canceled, this, &ACharacter::StopJumping);
     }
+
+    PlayerInputComponent->BindKey(EKeys::Tab, IE_Pressed, this, &AMyCharacter::ToggleMapCamera);
 }
 
 void AMyCharacter::Tick(float DeltaSeconds)
@@ -58,10 +83,75 @@ void AMyCharacter::Tick(float DeltaSeconds)
     Super::Tick(DeltaSeconds);
 
     UpdateFacingDirection(DeltaSeconds);
+    UpdateCameraDistance(DeltaSeconds);
+}
+
+float AMyCharacter::TakeDamage(
+    float DamageAmount,
+    FDamageEvent const& DamageEvent,
+    AController* EventInstigator,
+    AActor* DamageCauser)
+{
+    const float AppliedDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+    if (bDead || AppliedDamage <= 0.0f)
+    {
+        return 0.0f;
+    }
+
+    const float PreviousHealth = CurrentHealth;
+    CurrentHealth = FMath::Clamp(CurrentHealth - AppliedDamage, 0.0f, MaxHealth);
+
+    if (CurrentHealth <= 0.0f)
+    {
+        bDead = true;
+        OnDeath(EventInstigator, DamageCauser);
+    }
+
+    return PreviousHealth - CurrentHealth;
+}
+
+float AMyCharacter::GetCurrentHealth() const
+{
+    return CurrentHealth;
+}
+
+float AMyCharacter::GetMaxHealth() const
+{
+    return MaxHealth;
+}
+
+bool AMyCharacter::IsDead() const
+{
+    return bDead;
+}
+
+void AMyCharacter::Heal(float HealAmount)
+{
+    if (bDead || HealAmount <= 0.0f)
+    {
+        return;
+    }
+
+    CurrentHealth = FMath::Clamp(CurrentHealth + HealAmount, 0.0f, MaxHealth);
+}
+
+void AMyCharacter::OnDeath_Implementation(AController* EventInstigator, AActor* DamageCauser)
+{
+    (void)EventInstigator;
+    (void)DamageCauser;
+
+    GetCharacterMovement()->DisableMovement();
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AMyCharacter::Move(const FInputActionValue& Value)
 {
+    if (bDead)
+    {
+        return;
+    }
+
     MoveInputValue = Value.Get<float>();
 
     if (!FMath::IsNearlyZero(MoveInputValue))
@@ -76,8 +166,18 @@ void AMyCharacter::StopMove(const FInputActionValue& Value)
     MoveInputValue = 0.0f;
 }
 
+void AMyCharacter::ToggleMapCamera()
+{
+    bMapCameraActive = !bMapCameraActive;
+}
+
 void AMyCharacter::UpdateFacingDirection(float DeltaSeconds)
 {
+    if (bDead)
+    {
+        return;
+    }
+
     FVector FacingDirection = FVector::ZeroVector;
 
     if (!FMath::IsNearlyZero(MoveInputValue))
@@ -129,4 +229,29 @@ void AMyCharacter::UpdateFacingDirection(float DeltaSeconds)
             RotationInterpSpeed);
         CharacterMesh->SetRelativeRotation(NewMeshRotation);
     }
+}
+
+void AMyCharacter::UpdateCameraDistance(float DeltaSeconds)
+{
+    if (!CameraBoom)
+    {
+        return;
+    }
+
+    const float TargetDistance = bMapCameraActive ? MapViewCameraDistance : NormalCameraDistance;
+    CameraBoom->TargetArmLength = FMath::FInterpTo(
+        CameraBoom->TargetArmLength,
+        TargetDistance,
+        DeltaSeconds,
+        CameraDistanceInterpSpeed);
+}
+
+void AMyCharacter::ApplySideViewCameraRotation()
+{
+    if (!CameraBoom)
+    {
+        return;
+    }
+
+    CameraBoom->SetRelativeRotation(SideViewCameraRotation);
 }
