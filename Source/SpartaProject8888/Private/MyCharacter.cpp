@@ -6,7 +6,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Components/CapsuleComponent.h"
-#include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputCoreTypes.h"
 
@@ -18,16 +17,6 @@ AMyCharacter::AMyCharacter()
 
     GetCharacterMovement()->bOrientRotationToMovement = false;
     GetCharacterMovement()->bUseControllerDesiredRotation = false;
-
-    CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-    CameraBoom->SetupAttachment(RootComponent);
-    CameraBoom->TargetArmLength = NormalCameraDistance;
-    CameraBoom->SetRelativeRotation(SideViewCameraRotation);
-    CameraBoom->bUsePawnControlRotation = false;
-
-    FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-    FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-    FollowCamera->bUsePawnControlRotation = false;
 }
 
 void AMyCharacter::BeginPlay()
@@ -37,10 +26,14 @@ void AMyCharacter::BeginPlay()
     CurrentHealth = MaxHealth;
     UE_LOG(LogTemp, Warning, TEXT("Character %s starting health: %.1f / %.1f"), *GetName(), CurrentHealth, MaxHealth);
 
+    CameraBoom = FindComponentByClass<USpringArmComponent>();
     if (CameraBoom)
     {
-        CameraBoom->TargetArmLength = NormalCameraDistance;
-        ApplySideViewCameraRotation();
+        NormalCameraDistance = CameraBoom->TargetArmLength;
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Character %s has no SpringArmComponent for map camera toggle."), *GetName());
     }
 
     BaseActorYaw = GetActorRotation().Yaw;
@@ -244,14 +237,4 @@ void AMyCharacter::UpdateCameraDistance(float DeltaSeconds)
         TargetDistance,
         DeltaSeconds,
         CameraDistanceInterpSpeed);
-}
-
-void AMyCharacter::ApplySideViewCameraRotation()
-{
-    if (!CameraBoom)
-    {
-        return;
-    }
-
-    CameraBoom->SetRelativeRotation(SideViewCameraRotation);
 }

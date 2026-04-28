@@ -10,7 +10,6 @@
 class UInputMappingContext;
 class UInputAction;
 class USpringArmComponent;
-class UCameraComponent;
 
 UCLASS()
 class SPARTAPROJECT8888_API AMyCharacter : public ACharacter
@@ -54,23 +53,14 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Rotation")
     float RotationInterpSpeed = 8.0f;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+    UPROPERTY(Transient)
     USpringArmComponent* CameraBoom;
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-    UCameraComponent* FollowCamera;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta = (ClampMin = "0.0", Units = "cm"))
-    float NormalCameraDistance = 500.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta = (ClampMin = "0.0", Units = "cm"))
     float MapViewCameraDistance = 2500.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta = (ClampMin = "0.0"))
     float CameraDistanceInterpSpeed = 6.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
-    FRotator SideViewCameraRotation = FRotator(0.0f, -90.0f, 0.0f);
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Health", meta = (ClampMin = "1.0"))
     float MaxHealth = 100.0f;
@@ -90,10 +80,10 @@ protected:
     void ToggleMapCamera();
     void UpdateFacingDirection(float DeltaSeconds);
     void UpdateCameraDistance(float DeltaSeconds);
-    void ApplySideViewCameraRotation();
 
     float MoveInputValue = 0.0f;
     float BaseActorYaw = 0.0f;
     FRotator InitialMeshRelativeRotation = FRotator::ZeroRotator;
+    float NormalCameraDistance = 0.0f;
     bool bMapCameraActive = false;
 };
