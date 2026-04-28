@@ -37,6 +37,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Health")
     void Heal(float HealAmount);
 
+    UFUNCTION(BlueprintCallable, Category = "Respawn")
+    void SetRespawnTransform(const FTransform& NewRespawnTransform);
+
+    UFUNCTION(BlueprintCallable, Category = "Respawn")
+    void Respawn();
+
 protected:
     virtual void BeginPlay() override;
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -52,6 +58,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Rotation")
     float RotationInterpSpeed = 8.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Plane")
+    bool bLockToInitialY = true;
 
     UPROPERTY(Transient)
     USpringArmComponent* CameraBoom;
@@ -71,6 +80,9 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
     bool bDead = false;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Respawn", meta = (ClampMin = "0.0", Units = "s"))
+    float RespawnDelay = 0.25f;
+
     UFUNCTION(BlueprintNativeEvent, Category = "Health")
     void OnDeath(AController* EventInstigator, AActor* DamageCauser);
     virtual void OnDeath_Implementation(AController* EventInstigator, AActor* DamageCauser);
@@ -80,10 +92,15 @@ protected:
     void ToggleMapCamera();
     void UpdateFacingDirection(float DeltaSeconds);
     void UpdateCameraDistance(float DeltaSeconds);
+    void ApplyYConstraint();
 
     float MoveInputValue = 0.0f;
+    float LockedYLocation = 0.0f;
     float BaseActorYaw = 0.0f;
     FRotator InitialMeshRelativeRotation = FRotator::ZeroRotator;
+    FVector InitialActorScale = FVector::OneVector;
     float NormalCameraDistance = 0.0f;
     bool bMapCameraActive = false;
+    FTransform RespawnTransform = FTransform::Identity;
+    FTimerHandle RespawnTimerHandle;
 };

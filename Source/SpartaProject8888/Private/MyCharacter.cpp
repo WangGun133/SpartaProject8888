@@ -8,6 +8,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputCoreTypes.h"
+#include "TimerManager.h"
 
 AMyCharacter::AMyCharacter()
 {
@@ -17,6 +18,8 @@ AMyCharacter::AMyCharacter()
 
     GetCharacterMovement()->bOrientRotationToMovement = false;
     GetCharacterMovement()->bUseControllerDesiredRotation = false;
+    GetCharacterMovement()->SetPlaneConstraintNormal(FVector::YAxisVector);
+    GetCharacterMovement()->SetPlaneConstraintEnabled(true);
 }
 
 void AMyCharacter::BeginPlay()
@@ -25,6 +28,12 @@ void AMyCharacter::BeginPlay()
 
     CurrentHealth = MaxHealth;
     UE_LOG(LogTemp, Warning, TEXT("Character %s starting health: %.1f / %.1f"), *GetName(), CurrentHealth, MaxHealth);
+
+    InitialActorScale = GetActorScale3D();
+    RespawnTransform = GetActorTransform();
+    LockedYLocation = GetActorLocation().Y;
+    GetCharacterMovement()->SetPlaneConstraintOrigin(GetActorLocation());
+    GetCharacterMovement()->SetPlaneConstraintEnabled(bLockToInitialY);
 
     CameraBoom = FindComponentByClass<USpringArmComponent>();
     if (CameraBoom)
@@ -77,6 +86,7 @@ void AMyCharacter::Tick(float DeltaSeconds)
 
     UpdateFacingDirection(DeltaSeconds);
     UpdateCameraDistance(DeltaSeconds);
+    ApplyYConstraint();
 }
 
 float AMyCharacter::TakeDamage(
@@ -136,6 +146,49 @@ void AMyCharacter::OnDeath_Implementation(AController* EventInstigator, AActor* 
 
     GetCharacterMovement()->DisableMovement();
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    GetWorldTimerManager().ClearTimer(RespawnTimerHandle);
+    if (RespawnDelay <= 0.0f)
+    {
+        Respawn();
+        return;
+    }
+
+    GetWorldTimerManager().SetTimer(
+        RespawnTimerHandle,
+        this,
+        &AMyCharacter::Respawn,
+        RespawnDelay,
+        false);
+}
+
+void AMyCharacter::SetRespawnTransform(const FTransform& NewRespawnTransform)
+{
+    RespawnTransform = NewRespawnTransform;
+    RespawnTransform.SetScale3D(InitialActorScale);
+}
+
+void AMyCharacter::Respawn()
+{
+    GetWorldTimerManager().ClearTimer(RespawnTimerHandle);
+
+    bDead = false;
+    CurrentHealth = MaxHealth;
+    MoveInputValue = 0.0f;
+
+    if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
+    {
+        CharacterMovementComponent->StopMovementImmediately();
+        CharacterMovementComponent->SetMovementMode(MOVE_Walking);
+    }
+
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    RespawnTransform.SetScale3D(InitialActorScale);
+    SetActorTransform(RespawnTransform, false, nullptr, ETeleportType::TeleportPhysics);
+
+    LockedYLocation = GetActorLocation().Y;
+    GetCharacterMovement()->SetPlaneConstraintOrigin(GetActorLocation());
+    ApplyYConstraint();
 }
 
 void AMyCharacter::Move(const FInputActionValue& Value)
@@ -237,4 +290,28 @@ void AMyCharacter::UpdateCameraDistance(float DeltaSeconds)
         TargetDistance,
         DeltaSeconds,
         CameraDistanceInterpSpeed);
+}
+
+void AMyCharacter::ApplyYConstraint()
+{
+    if (!bLockToInitialY)
+    {
+        return;
+    }
+
+    if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
+    {
+        FVector Velocity = CharacterMovementComponent->Velocity;
+        Velocity.Y = 0.0f;
+        CharacterMovementComponent->Velocity = Velocity;
+    }
+
+    FVector Location = GetActorLocation();
+    if (FMath::IsNearlyEqual(Location.Y, LockedYLocation))
+    {
+        return;
+    }
+
+    Location.Y = LockedYLocation;
+    SetActorLocation(Location, false, nullptr, ETeleportType::TeleportPhysics);
 }

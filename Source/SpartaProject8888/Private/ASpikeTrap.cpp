@@ -8,6 +8,8 @@
 
 ASpikeTrap::ASpikeTrap()
 {
+	bInstantKill = true;
+
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	RootComponent = SceneRoot;
 

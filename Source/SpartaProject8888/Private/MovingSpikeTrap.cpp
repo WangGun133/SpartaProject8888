@@ -9,6 +9,7 @@
 AMovingSpikeTrap::AMovingSpikeTrap()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	bInstantKill = true;
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	RootComponent = SceneRoot;
