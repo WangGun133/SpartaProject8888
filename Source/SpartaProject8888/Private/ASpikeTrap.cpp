@@ -64,28 +64,9 @@ void ASpikeTrap::DeactivateTrap()
 	}
 }
 
-void ASpikeTrap::ApplyTrapDamage(AActor* Target)
+bool ASpikeTrap::ApplyTrapDamage(AActor* Target)
 {
-	if (!bActive || !IsValid(Target))
-	{
-		return;
-	}
-
-	AMyCharacter* TargetCharacter = Cast<AMyCharacter>(Target);
-	const float HealthBeforeDamage = TargetCharacter ? TargetCharacter->GetCurrentHealth() : 0.0f;
-
-	Super::ApplyTrapDamage(Target);
-
-	if (TargetCharacter)
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("SpikeTrap touched %s. Health: %.1f -> %.1f"),
-			*TargetCharacter->GetName(),
-			HealthBeforeDamage,
-			TargetCharacter->GetCurrentHealth());
-	}
+	return Super::ApplyTrapDamage(Target);
 }
 
 void ASpikeTrap::OnDamageCollisionBeginOverlap(
@@ -107,5 +88,5 @@ void ASpikeTrap::OnDamageCollisionBeginOverlap(
 		return;
 	}
 
-	ApplyTrapDamage(OtherActor);
+	(void)ApplyTrapDamage(OtherActor);
 }

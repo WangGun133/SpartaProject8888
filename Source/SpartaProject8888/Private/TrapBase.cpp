@@ -2,7 +2,7 @@
 
 
 #include "TrapBase.h"
-#include "Kismet/GameplayStatics.h"
+#include "MyCharacter.h"
 
 // Sets default values
 ATrapBase::ATrapBase()
@@ -31,20 +31,19 @@ void ATrapBase::DeactivateTrap()
 	SetActorTickEnabled(false);
 }
 
-void ATrapBase::ApplyTrapDamage(AActor* Target)
+bool ATrapBase::ApplyTrapDamage(AActor* Target)
 {
 	if (!bActive || !IsValid(Target))
 	{
-		return;
+		return false;
 	}
 
-	const float DamageAmount = bInstantKill ? TNumericLimits<float>::Max() : Damage;
-	UGameplayStatics::ApplyDamage(
-		Target,
-		DamageAmount,
-		GetInstigatorController(),
-		this,
-		UDamageType::StaticClass());
+	if (AMyCharacter* TargetCharacter = Cast<AMyCharacter>(Target))
+	{
+		return TargetCharacter->DieFromTrap(this);
+	}
+
+	return false;
 }
 
 // Called every frame

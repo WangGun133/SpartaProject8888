@@ -30,7 +30,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void ActivateTrap() override;
 	virtual void DeactivateTrap() override;
-	virtual void ApplyTrapDamage(AActor* Target) override;
+	virtual bool ApplyTrapDamage(AActor* Target) override;
 
 	UFUNCTION()
 	void OnDamageCollisionBeginOverlap(

@@ -58,6 +58,16 @@ int32 AExitActor::GetCollectedCount() const
 	return CollectedCount;
 }
 
+int32 AExitActor::GetRequiredCollectibleCount() const
+{
+	return RequiredCollectibleCount;
+}
+
+int32 AExitActor::GetRemainingCollectibleCount() const
+{
+	return FMath::Max(0, RequiredCollectibleCount - GetCollectedCount());
+}
+
 bool AExitActor::CanExit() const
 {
 	return GetCollectedCount() >= RequiredCollectibleCount;
@@ -66,6 +76,13 @@ bool AExitActor::CanExit() const
 void AExitActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Coin progress started: %d / %d"),
+		GetCollectedCount(),
+		GetRequiredCollectibleCount());
 
 	if (ExitCollision)
 	{
@@ -77,6 +94,12 @@ void AExitActor::TryExit(AActor* ExitingActor)
 {
 	if (!CanExit())
 	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("Exit locked. Coins: %d / %d"),
+			GetCollectedCount(),
+			GetRequiredCollectibleCount());
 		return;
 	}
 

@@ -20,6 +20,12 @@ public:
 	int32 GetCollectedCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "Exit")
+	int32 GetRequiredCollectibleCount() const;
+
+	UFUNCTION(BlueprintPure, Category = "Exit")
+	int32 GetRemainingCollectibleCount() const;
+
+	UFUNCTION(BlueprintPure, Category = "Exit")
 	bool CanExit() const;
 
 protected:

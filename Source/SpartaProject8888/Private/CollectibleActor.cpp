@@ -2,6 +2,8 @@
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "EngineUtils.h"
+#include "ExitActor.h"
 #include "GameFramework/Character.h"
 
 ACollectibleActor::ACollectibleActor()
@@ -82,6 +84,20 @@ void ACollectibleActor::Collect(AActor* CollectingActor)
 	}
 
 	OnCollected(CollectingActor);
+
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<AExitActor> It(World); It; ++It)
+		{
+			UE_LOG(
+				LogTemp,
+				Warning,
+				TEXT("Coin collected. Coins: %d / %d"),
+				It->GetCollectedCount(),
+				It->GetRequiredCollectibleCount());
+			break;
+		}
+	}
 }
 
 void ACollectibleActor::OnCollectCollisionBeginOverlap(

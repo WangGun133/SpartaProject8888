@@ -31,7 +31,7 @@ protected:
 	virtual void DeactivateTrap();
 
 	UFUNCTION(BlueprintCallable, Category = "Trap")
-	virtual void ApplyTrapDamage(AActor* Target);
+	virtual bool ApplyTrapDamage(AActor* Target);
 
 	virtual void BeginPlay() override;
 

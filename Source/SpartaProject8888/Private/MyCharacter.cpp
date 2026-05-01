@@ -26,8 +26,7 @@ void AMyCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    CurrentHealth = MaxHealth;
-    UE_LOG(LogTemp, Warning, TEXT("Character %s starting health: %.1f / %.1f"), *GetName(), CurrentHealth, MaxHealth);
+    UE_LOG(LogTemp, Warning, TEXT("Character %s starting life: %d"), *GetName(), Life);
 
     InitialActorScale = GetActorScale3D();
     RespawnTransform = GetActorTransform();
@@ -89,39 +88,9 @@ void AMyCharacter::Tick(float DeltaSeconds)
     ApplyYConstraint();
 }
 
-float AMyCharacter::TakeDamage(
-    float DamageAmount,
-    FDamageEvent const& DamageEvent,
-    AController* EventInstigator,
-    AActor* DamageCauser)
+int32 AMyCharacter::GetLife() const
 {
-    const float AppliedDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-
-    if (bDead || AppliedDamage <= 0.0f)
-    {
-        return 0.0f;
-    }
-
-    const float PreviousHealth = CurrentHealth;
-    CurrentHealth = FMath::Clamp(CurrentHealth - AppliedDamage, 0.0f, MaxHealth);
-
-    if (CurrentHealth <= 0.0f)
-    {
-        bDead = true;
-        OnDeath(EventInstigator, DamageCauser);
-    }
-
-    return PreviousHealth - CurrentHealth;
-}
-
-float AMyCharacter::GetCurrentHealth() const
-{
-    return CurrentHealth;
-}
-
-float AMyCharacter::GetMaxHealth() const
-{
-    return MaxHealth;
+    return Life;
 }
 
 bool AMyCharacter::IsDead() const
@@ -129,14 +98,22 @@ bool AMyCharacter::IsDead() const
     return bDead;
 }
 
-void AMyCharacter::Heal(float HealAmount)
+bool AMyCharacter::DieFromTrap(AActor* DamageCauser)
 {
-    if (bDead || HealAmount <= 0.0f)
+    if (bDead || bTrapDamageInvulnerable || Life <= 0)
     {
-        return;
+        return false;
     }
 
-    CurrentHealth = FMath::Clamp(CurrentHealth + HealAmount, 0.0f, MaxHealth);
+    const int32 PreviousLife = Life;
+    Life = FMath::Max(0, Life - 1);
+
+    UE_LOG(LogTemp, Warning, TEXT("Character %s died from trap. Life: %d -> %d"), *GetName(), PreviousLife, Life);
+
+    bDead = true;
+    OnDeath(nullptr, DamageCauser);
+
+    return true;
 }
 
 void AMyCharacter::OnDeath_Implementation(AController* EventInstigator, AActor* DamageCauser)
@@ -173,7 +150,7 @@ void AMyCharacter::Respawn()
     GetWorldTimerManager().ClearTimer(RespawnTimerHandle);
 
     bDead = false;
-    CurrentHealth = MaxHealth;
+    bTrapDamageInvulnerable = RespawnInvincibilityTime > 0.0f;
     MoveInputValue = 0.0f;
 
     if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
@@ -189,6 +166,17 @@ void AMyCharacter::Respawn()
     LockedYLocation = GetActorLocation().Y;
     GetCharacterMovement()->SetPlaneConstraintOrigin(GetActorLocation());
     ApplyYConstraint();
+
+    GetWorldTimerManager().ClearTimer(TrapDamageInvulnerabilityTimerHandle);
+    if (bTrapDamageInvulnerable)
+    {
+        GetWorldTimerManager().SetTimer(
+            TrapDamageInvulnerabilityTimerHandle,
+            this,
+            &AMyCharacter::EndTrapDamageInvulnerability,
+            RespawnInvincibilityTime,
+            false);
+    }
 }
 
 void AMyCharacter::Move(const FInputActionValue& Value)
@@ -314,4 +302,9 @@ void AMyCharacter::ApplyYConstraint()
 
     Location.Y = LockedYLocation;
     SetActorLocation(Location, false, nullptr, ETeleportType::TeleportPhysics);
+}
+
+void AMyCharacter::EndTrapDamageInvulnerability()
+{
+    bTrapDamageInvulnerable = false;
 }

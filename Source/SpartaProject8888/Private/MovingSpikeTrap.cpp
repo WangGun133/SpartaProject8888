@@ -93,28 +93,9 @@ void AMovingSpikeTrap::DeactivateTrap()
 	}
 }
 
-void AMovingSpikeTrap::ApplyTrapDamage(AActor* Target)
+bool AMovingSpikeTrap::ApplyTrapDamage(AActor* Target)
 {
-	if (!bActive || !IsValid(Target))
-	{
-		return;
-	}
-
-	AMyCharacter* TargetCharacter = Cast<AMyCharacter>(Target);
-	const float HealthBeforeDamage = TargetCharacter ? TargetCharacter->GetCurrentHealth() : 0.0f;
-
-	Super::ApplyTrapDamage(Target);
-
-	if (TargetCharacter)
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("MovingSpikeTrap touched %s. Health: %.1f -> %.1f"),
-			*TargetCharacter->GetName(),
-			HealthBeforeDamage,
-			TargetCharacter->GetCurrentHealth());
-	}
+	return Super::ApplyTrapDamage(Target);
 }
 
 void AMovingSpikeTrap::OnDamageCollisionBeginOverlap(
@@ -136,6 +117,6 @@ void AMovingSpikeTrap::OnDamageCollisionBeginOverlap(
 		return;
 	}
 
-	ApplyTrapDamage(OtherActor);
+	(void)ApplyTrapDamage(OtherActor);
 }
 
